@@ -1,0 +1,24 @@
+archives/
+*.zip
+
+# Distributed archives
+*.zip
+
+# Generated output
+data/output/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
