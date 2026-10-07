@@ -1,11 +1,50 @@
+"""JSON input and atomic output file handling."""
+
 import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Any
 
-def read_json(input_path):
-    with open(input_path, "r", encoding="utf-8") as file:
-        data = json.load(file)
+from .models import FunctionCallingResult
 
-    return data
 
-def save_json(data, output_path):
-    with open(output_path, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
+def read_json(input_path: str | Path) -> Any:
+    """Read and parse one UTF-8 JSON file."""
+    with Path(input_path).open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def save_results(
+    results: list[FunctionCallingResult],
+    output_path: str | Path,
+) -> None:
+    """Atomically write the complete result list as UTF-8 JSON."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+            json.dump(
+                [result.model_dump(mode="json") for result in results],
+                temporary_file,
+                ensure_ascii=False,
+                indent=2,
+            )
+            temporary_file.write("\n")
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+        os.replace(temporary_path, path)
+    except Exception:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise

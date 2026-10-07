@@ -1,27 +1,34 @@
-from llm_sdk import Small_LLM_Model
+"""Command-line entry point for constrained function-call generation."""
+
+import sys
 
 from .cli import parse_arguments
-from .file_io import read_json
-from .input_validation import validate_prompts, validate_functions
-from .prompt_building import build_prompt, build_function_selection_prompt
-from .constrained_decoding import test_constrained_decoding
+from .file_io import read_json, save_results
+from .models import validate_functions, validate_prompts
+from .pipeline import generate_all_results
 
-def main():
+
+def run() -> None:
+    """Load inputs, generate all calls, and save a single result array."""
     args = parse_arguments()
+    prompts = validate_prompts(read_json(args.input))
+    functions = validate_functions(read_json(args.functions_definition))
+    results = generate_all_results(prompts, functions)
+    save_results(results, args.output)
 
-    prompts_data = read_json(args.input)
-    functions_data = read_json(args.functions_definition)
 
-    prompts = validate_prompts(prompts_data)
-    functions = validate_functions(functions_data)
+def main() -> int:
+    """Run the CLI and report failures without an application traceback."""
+    try:
+        run()
+    except KeyboardInterrupt:
+        print("error: interrupted", file=sys.stderr)
+        return 130
+    except Exception as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
 
-    model = Small_LLM_Model()
-
-    for prompt in prompts:
-        modified_prompt = build_function_selection_prompt(prompt.prompt, functions)
-        selected_function = test_constrained_decoding(modified_prompt, functions, model)
-        print(prompt.prompt)
-        print(selected_function)
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
