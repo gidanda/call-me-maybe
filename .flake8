@@ -5,6 +5,5 @@ exclude =
     .pytest_cache,
     .venv,
     __pycache__,
-    experiments,
     llm_sdk
 max-line-length = 79

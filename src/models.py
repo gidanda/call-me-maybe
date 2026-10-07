@@ -1,5 +1,6 @@
 """Validated input and output models for function calling."""
 
+import math
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -134,5 +135,13 @@ def validate_function_call(
             raise ValueError(f"parameter {name!r} must be a boolean")
         if definition.type == "number" and type(value) not in (int, float):
             raise ValueError(f"parameter {name!r} must be a number")
+        if (
+            definition.type == "number"
+            and isinstance(value, float)
+            and not math.isfinite(value)
+        ):
+            raise ValueError(
+                f"parameter {name!r} must be a finite JSON number"
+            )
 
     return call

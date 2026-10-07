@@ -4,15 +4,20 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from .models import FunctionCallingResult
+
+
+def _reject_nonstandard_constant(value: str) -> NoReturn:
+    """Reject NaN and infinity spellings accepted by Python's JSON parser."""
+    raise ValueError(f"invalid JSON numeric constant: {value}")
 
 
 def read_json(input_path: str | Path) -> Any:
     """Read and parse one UTF-8 JSON file."""
     with Path(input_path).open("r", encoding="utf-8") as file:
-        return json.load(file)
+        return json.load(file, parse_constant=_reject_nonstandard_constant)
 
 
 def save_results(
@@ -39,6 +44,7 @@ def save_results(
                 temporary_file,
                 ensure_ascii=False,
                 indent=2,
+                allow_nan=False,
             )
             temporary_file.write("\n")
             temporary_file.flush()

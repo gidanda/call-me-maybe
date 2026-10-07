@@ -1,61 +1,12 @@
 """Generic logit-masked constrained decoding loop."""
 
 from collections.abc import Mapping
-from typing import Protocol, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 import numpy as np
 
 StateT = TypeVar("StateT")
-
-
-class EncodedTokenIds(Protocol):
-    """Describe the tensor operation used from the public SDK result."""
-
-    def tolist(self) -> list[list[int]]:
-        """Return batch-shaped token IDs."""
-        ...
-
-
-class DecodingModel(Protocol):
-    """Describe the public model operations used by the decoder."""
-
-    def encode(self, text: str) -> EncodedTokenIds:
-        """Encode text into a single token-ID batch."""
-        ...
-
-    def get_logits_from_input_ids(
-        self,
-        input_ids: list[int],
-    ) -> list[float]:
-        """Return next-token logits."""
-        ...
-
-
-class Constraint(Protocol[StateT]):
-    """Describe the state-machine operations required by the decoder."""
-
-    def initial_state(self) -> StateT:
-        """Return the initial grammar state."""
-        ...
-
-    def transition(
-        self,
-        state: StateT,
-        token_bytes: bytes,
-    ) -> StateT | None:
-        """Return the candidate state, or None when disallowed."""
-        ...
-
-    def is_complete(self, state: StateT) -> bool:
-        """Return whether generation is complete."""
-        ...
-
-    def allowed_first_bytes(
-        self,
-        state: StateT,
-    ) -> frozenset[int] | None:
-        """Return possible token-leading bytes when known."""
-        ...
 
 
 def _candidate_token_ids(
@@ -78,9 +29,12 @@ def _candidate_token_ids(
 
 
 def constrained_decode(
-    model: DecodingModel,
-    prompt: str,
-    constraint: Constraint[StateT],
+    get_logits: Callable[[list[int]], list[float]],
+    prompt_token_ids: list[int],
+    initial_state: StateT,
+    transition: Callable[[StateT, bytes], StateT | None],
+    is_complete: Callable[[StateT], bool],
+    allowed_first_bytes: Callable[[StateT], frozenset[int] | None],
     token_bytes_by_id: Mapping[int, bytes],
     token_ids_by_first_byte: Mapping[int, tuple[int, ...]],
     max_tokens: int = 256,
@@ -88,25 +42,18 @@ def constrained_decode(
     """Generate one continuation with invalid token logits masked to -inf."""
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
+    if not prompt_token_ids:
+        raise RuntimeError("model prompt encoded to an empty token sequence")
 
-    encoded = model.encode(prompt).tolist()
-    if len(encoded) != 1 or not encoded[0]:
-        raise RuntimeError(
-            "model prompt did not encode to one non-empty batch"
-        )
-
-    prompt_token_ids = encoded[0]
     output_token_ids: list[int] = []
     output_bytes = bytearray()
-    state = constraint.initial_state()
+    state = initial_state
 
     for _ in range(max_tokens):
-        if constraint.is_complete(state):
+        if is_complete(state):
             break
 
-        logits = model.get_logits_from_input_ids(
-            prompt_token_ids + output_token_ids
-        )
+        logits = get_logits(prompt_token_ids + output_token_ids)
         if not logits:
             raise RuntimeError("model returned an empty logit vector")
 
@@ -117,7 +64,7 @@ def constrained_decode(
         )
         candidate_states: dict[int, StateT] = {}
         candidate_ids = _candidate_token_ids(
-            constraint.allowed_first_bytes(state),
+            allowed_first_bytes(state),
             token_bytes_by_id,
             token_ids_by_first_byte,
         )
@@ -125,7 +72,7 @@ def constrained_decode(
         for token_id in candidate_ids:
             if token_id < 0 or token_id >= len(logits):
                 continue
-            next_state = constraint.transition(
+            next_state = transition(
                 state,
                 token_bytes_by_id[token_id],
             )
@@ -148,7 +95,7 @@ def constrained_decode(
         output_bytes.extend(token_bytes_by_id[selected_token_id])
         state = candidate_states[selected_token_id]
 
-    if not constraint.is_complete(state):
+    if not is_complete(state):
         raise RuntimeError("constrained generation exceeded the token limit")
 
     try:

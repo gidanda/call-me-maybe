@@ -1,6 +1,5 @@
 """Incremental byte-level constraints for primitive JSON values."""
 
-from dataclasses import dataclass, replace
 from typing import Literal
 
 NumberPhase = Literal[
@@ -16,42 +15,20 @@ NumberPhase = Literal[
 ]
 
 
-@dataclass(frozen=True, slots=True)
-class StringState:
-    """Track parsing of one JSON string."""
-
-    started: bool = False
-    escaped: bool = False
-    unicode_digits_remaining: int = 0
-    pending_utf8: bytes = b""
-    complete: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class NumberState:
-    """Track parsing of one JSON number."""
-
-    phase: NumberPhase = "start"
-
-
-@dataclass(frozen=True, slots=True)
-class BooleanState:
-    """Track parsing of one JSON boolean."""
-
-    generated: bytes = b""
-
-
+StringState = tuple[Literal["string"], bool, bool, int, bytes, bool]
+NumberState = tuple[Literal["number"], NumberPhase]
+BooleanState = tuple[Literal["boolean"], bytes]
 ValueState = StringState | NumberState | BooleanState
 
 
 def initial_value_state(type_name: str) -> ValueState:
     """Return an initial state for a supported JSON primitive type."""
     if type_name == "string":
-        return StringState()
+        return ("string", False, False, 0, b"", False)
     if type_name == "number":
-        return NumberState()
+        return ("number", "start")
     if type_name == "boolean":
-        return BooleanState()
+        return ("boolean", b"")
     raise ValueError(f"unsupported parameter type: {type_name}")
 
 
@@ -81,38 +58,38 @@ def _append_utf8_byte(pending: bytes, byte: int) -> bytes | None:
 
 def _transition_string(state: StringState, byte: int) -> StringState | None:
     """Consume one byte of a JSON string."""
-    if state.complete:
+    _, started, escaped, unicode_remaining, pending_utf8, complete = state
+    if complete:
         return None
-    if not state.started:
+    if not started:
         if byte != ord('"'):
             return None
-        return replace(state, started=True)
-    if state.pending_utf8:
-        pending = _append_utf8_byte(state.pending_utf8, byte)
+        return ("string", True, escaped, unicode_remaining, pending_utf8,
+                complete)
+    if pending_utf8:
+        pending = _append_utf8_byte(pending_utf8, byte)
         if pending is None:
             return None
-        return replace(state, pending_utf8=pending)
-    if state.unicode_digits_remaining:
+        return ("string", started, escaped, unicode_remaining, pending,
+                complete)
+    if unicode_remaining:
         if not _is_hex_digit(byte):
             return None
-        return replace(
-            state,
-            unicode_digits_remaining=state.unicode_digits_remaining - 1,
-        )
-    if state.escaped:
+        return ("string", started, escaped, unicode_remaining - 1,
+                pending_utf8, complete)
+    if escaped:
         if byte in b'"\\/bfnrt':
-            return replace(state, escaped=False)
+            return ("string", started, False, unicode_remaining,
+                    pending_utf8, complete)
         if byte == ord("u"):
-            return replace(
-                state,
-                escaped=False,
-                unicode_digits_remaining=4,
-            )
+            return ("string", started, False, 4, pending_utf8, complete)
         return None
     if byte == ord('"'):
-        return replace(state, complete=True)
+        return ("string", started, escaped, unicode_remaining,
+                pending_utf8, True)
     if byte == ord("\\"):
-        return replace(state, escaped=True)
+        return ("string", started, True, unicode_remaining, pending_utf8,
+                complete)
     if byte < 0x20:
         return None
     if byte < 0x80:
@@ -121,54 +98,55 @@ def _transition_string(state: StringState, byte: int) -> StringState | None:
     pending = _append_utf8_byte(b"", byte)
     if pending is None:
         return None
-    return replace(state, pending_utf8=pending)
+    return ("string", started, escaped, unicode_remaining, pending,
+            complete)
 
 
 def _transition_number(state: NumberState, byte: int) -> NumberState | None:
     """Consume one byte of a JSON number."""
     character = chr(byte)
-    phase = state.phase
+    phase = state[1]
     if phase == "start":
         if character == "-":
-            return NumberState("sign")
+            return ("number", "sign")
         if character == "0":
-            return NumberState("zero")
+            return ("number", "zero")
         if "1" <= character <= "9":
-            return NumberState("integer")
+            return ("number", "integer")
         return None
     if phase == "sign":
         if character == "0":
-            return NumberState("zero")
+            return ("number", "zero")
         if "1" <= character <= "9":
-            return NumberState("integer")
+            return ("number", "integer")
         return None
     if phase in ("zero", "integer"):
         if phase == "integer" and "0" <= character <= "9":
             return state
         if character == ".":
-            return NumberState("dot")
+            return ("number", "dot")
         if character in "eE":
-            return NumberState("exponent_mark")
+            return ("number", "exponent_mark")
         return None
     if phase == "dot":
         if "0" <= character <= "9":
-            return NumberState("fraction")
+            return ("number", "fraction")
         return None
     if phase == "fraction":
         if "0" <= character <= "9":
             return state
         if character in "eE":
-            return NumberState("exponent_mark")
+            return ("number", "exponent_mark")
         return None
     if phase == "exponent_mark":
         if character in "+-":
-            return NumberState("exponent_sign")
+            return ("number", "exponent_sign")
         if "0" <= character <= "9":
-            return NumberState("exponent")
+            return ("number", "exponent")
         return None
     if phase == "exponent_sign":
         if "0" <= character <= "9":
-            return NumberState("exponent")
+            return ("number", "exponent")
         return None
     if phase == "exponent" and "0" <= character <= "9":
         return state
@@ -180,30 +158,31 @@ def _transition_boolean(
     byte: int,
 ) -> BooleanState | None:
     """Consume one byte of a JSON boolean."""
-    candidate = state.generated + bytes((byte,))
+    candidate = state[1] + bytes((byte,))
     if not any(value.startswith(candidate) for value in (b"true", b"false")):
         return None
-    return BooleanState(candidate)
+    return ("boolean", candidate)
 
 
 def transition_value_byte(state: ValueState, byte: int) -> ValueState | None:
     """Consume one byte using the state-specific primitive grammar."""
-    if isinstance(state, StringState):
+    if state[0] == "string":
         return _transition_string(state, byte)
-    if isinstance(state, NumberState):
+    if state[0] == "number":
         return _transition_number(state, byte)
     return _transition_boolean(state, byte)
 
 
 def is_value_complete(state: ValueState) -> bool:
     """Return whether a primitive value can end at the current state."""
-    if isinstance(state, StringState):
+    if state[0] == "string":
+        _, _, escaped, unicode_remaining, pending_utf8, complete = state
         return (
-            state.complete
-            and not state.escaped
-            and state.unicode_digits_remaining == 0
-            and not state.pending_utf8
+            complete
+            and not escaped
+            and not unicode_remaining
+            and not pending_utf8
         )
-    if isinstance(state, NumberState):
-        return state.phase in ("zero", "integer", "fraction", "exponent")
-    return state.generated in (b"true", b"false")
+    if state[0] == "number":
+        return state[1] in ("zero", "integer", "fraction", "exponent")
+    return state[1] in (b"true", b"false")
