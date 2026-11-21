@@ -1,4 +1,4 @@
-"""Generic logit-masked constrained decoding loop."""
+"""Logits Maskingを用いた汎用的な制約付きデコードループ。"""
 
 from collections.abc import Mapping
 from collections.abc import Callable
@@ -14,7 +14,7 @@ def _candidate_token_ids(
     token_bytes_by_id: Mapping[int, bytes],
     token_ids_by_first_byte: Mapping[int, tuple[int, ...]],
 ) -> list[int]:
-    """Return token IDs worth testing in the current grammar state."""
+    """現在の文法状態で検査する価値があるトークンIDを返す。"""
     if allowed_first_bytes is None:
         return [
             token_id
@@ -39,7 +39,7 @@ def constrained_decode(
     token_ids_by_first_byte: Mapping[int, tuple[int, ...]],
     max_tokens: int = 256,
 ) -> str:
-    """Generate one continuation with invalid token logits masked to -inf."""
+    """無効なトークンのlogitを負の無限大にマスクし、一つの続きを生成する。"""
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
     if not prompt_token_ids:

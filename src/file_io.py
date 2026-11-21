@@ -1,4 +1,4 @@
-"""JSON input and atomic output file handling."""
+"""JSON入力とアトミックな出力ファイルの処理。"""
 
 import json
 import os
@@ -10,12 +10,12 @@ from .models import FunctionCallingResult
 
 
 def _reject_nonstandard_constant(value: str) -> NoReturn:
-    """Reject NaN and infinity spellings accepted by Python's JSON parser."""
+    """PythonのJSONパーサーが受理するNaNと無限大の表記を拒否する。"""
     raise ValueError(f"invalid JSON numeric constant: {value}")
 
 
 def read_json(input_path: str | Path) -> Any:
-    """Read and parse one UTF-8 JSON file."""
+    """一つのUTF-8 JSONファイルを読み込んで解析する。"""
     with Path(input_path).open("r", encoding="utf-8") as file:
         return json.load(file, parse_constant=_reject_nonstandard_constant)
 
@@ -24,7 +24,7 @@ def save_results(
     results: list[FunctionCallingResult],
     output_path: str | Path,
 ) -> None:
-    """Atomically write the complete result list as UTF-8 JSON."""
+    """完全な結果リストをUTF-8 JSONとしてアトミックに書き込む。"""
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None

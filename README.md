@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by hirokigoda.*
+*This project has been created as part of the 42 curriculum by hgoda.*
 
 # call me maybe
 
@@ -21,24 +21,23 @@ Install the project dependencies:
 make install
 ```
 
-Run with the default files in `data/input/`:
+Run the program with the default paths:
 
 ```bash
 make run
 ```
 
-Run with explicit paths:
+To use other files, pass their paths through the command-line options:
 
 ```bash
 uv run python -m src \
-  --functions_definition data/input/functions_definition.json \
-  --input data/input/function_calling_tests.json \
-  --output data/output/function_calling_results.json
+  --functions_definition path/to/functions_definition.json \
+  --input path/to/input_file.json \
+  --output path/to/output_file.json
 ```
 
 The first model run may require the Qwen model files to be available through
-the Hugging Face cache. The default output is written to
-`data/output/function_calling_results.json`.
+the Hugging Face cache.
 
 Other Makefile targets are:
 
@@ -46,6 +45,27 @@ Other Makefile targets are:
 - `make clean`: remove Python and tool caches.
 - `make lint`: run the mandatory flake8 and mypy checks.
 - `make lint-strict`: run flake8 and strict mypy checks.
+
+## Example usage
+
+Run the program with the function definitions and test prompts included in
+this repository:
+
+```bash
+uv run python -m src \
+  --functions_definition data/input/functions_definition.json \
+  --input data/input/function_calling_tests.json \
+  --output data/output/function_calls.json
+```
+
+The same default execution is available through the Makefile:
+
+```bash
+make run
+```
+
+The generated function-call array is written to
+`data/output/function_calls.json`.
 
 ## Input format
 

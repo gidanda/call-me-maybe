@@ -1,4 +1,4 @@
-"""Incremental byte-level constraints for primitive JSON values."""
+"""JSONプリミティブ値に対する増分的なバイト単位の制約。"""
 
 from typing import Literal
 
@@ -22,7 +22,7 @@ ValueState = StringState | NumberState | BooleanState
 
 
 def initial_value_state(type_name: str) -> ValueState:
-    """Return an initial state for a supported JSON primitive type."""
+    """サポート対象のJSONプリミティブ型の初期状態を返す。"""
     if type_name == "string":
         return ("string", False, False, 0, b"", False)
     if type_name == "number":
@@ -33,7 +33,7 @@ def initial_value_state(type_name: str) -> ValueState:
 
 
 def _is_hex_digit(byte: int) -> bool:
-    """Return whether a byte is an ASCII hexadecimal digit."""
+    """バイトがASCIIの16進数字であるかを返す。"""
     return (
         ord("0") <= byte <= ord("9")
         or ord("a") <= byte <= ord("f")
@@ -42,7 +42,7 @@ def _is_hex_digit(byte: int) -> bool:
 
 
 def _append_utf8_byte(pending: bytes, byte: int) -> bytes | None:
-    """Return an unfinished UTF-8 suffix, or reject invalid bytes."""
+    """未完成のUTF-8接尾部を返すか、無効なバイト列を拒否する。"""
     candidate = pending + bytes((byte,))
     try:
         candidate.decode("utf-8")
@@ -57,7 +57,7 @@ def _append_utf8_byte(pending: bytes, byte: int) -> bytes | None:
 
 
 def _transition_string(state: StringState, byte: int) -> StringState | None:
-    """Consume one byte of a JSON string."""
+    """JSON文字列の1バイトを消費する。"""
     _, started, escaped, unicode_remaining, pending_utf8, complete = state
     if complete:
         return None
@@ -103,7 +103,7 @@ def _transition_string(state: StringState, byte: int) -> StringState | None:
 
 
 def _transition_number(state: NumberState, byte: int) -> NumberState | None:
-    """Consume one byte of a JSON number."""
+    """JSON数値の1バイトを消費する。"""
     character = chr(byte)
     phase = state[1]
     if phase == "start":
@@ -157,7 +157,7 @@ def _transition_boolean(
     state: BooleanState,
     byte: int,
 ) -> BooleanState | None:
-    """Consume one byte of a JSON boolean."""
+    """JSON真偽値の1バイトを消費する。"""
     candidate = state[1] + bytes((byte,))
     if not any(value.startswith(candidate) for value in (b"true", b"false")):
         return None
@@ -165,7 +165,7 @@ def _transition_boolean(
 
 
 def transition_value_byte(state: ValueState, byte: int) -> ValueState | None:
-    """Consume one byte using the state-specific primitive grammar."""
+    """状態固有のプリミティブ文法を使用して1バイトを消費する。"""
     if state[0] == "string":
         return _transition_string(state, byte)
     if state[0] == "number":
@@ -174,7 +174,7 @@ def transition_value_byte(state: ValueState, byte: int) -> ValueState | None:
 
 
 def is_value_complete(state: ValueState) -> bool:
-    """Return whether a primitive value can end at the current state."""
+    """現在の状態でプリミティブ値を終了できるかを返す。"""
     if state[0] == "string":
         _, _, escaped, unicode_remaining, pending_utf8, complete = state
         return (

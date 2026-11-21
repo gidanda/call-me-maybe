@@ -1,11 +1,11 @@
-"""Load public token vocabulary data for byte-level constraints."""
+"""バイト単位の制約に使用する公開トークン語彙データを読み込む。"""
 
 import json
 from pathlib import Path
 
 
 def load_token_bytes(vocab_path: str | Path) -> dict[int, bytes]:
-    """Map token IDs to the original bytes represented by the vocabulary."""
+    """トークンIDを語彙が表す元のバイト列に対応付ける。"""
     with Path(vocab_path).open("r", encoding="utf-8") as file:
         vocabulary = json.load(file)
 
@@ -63,7 +63,7 @@ def load_token_bytes(vocab_path: str | Path) -> dict[int, bytes]:
 def index_tokens_by_first_byte(
     token_bytes_by_id: dict[int, bytes],
 ) -> dict[int, tuple[int, ...]]:
-    """Index non-empty token IDs by their first byte."""
+    """空でないトークンIDを先頭バイトごとに索引化する。"""
     mutable_index: dict[int, list[int]] = {}
     for token_id, token_bytes in token_bytes_by_id.items():
         if token_bytes:

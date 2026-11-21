@@ -1,4 +1,4 @@
-"""Prompt construction for function-call generation."""
+"""関数呼び出し生成用のプロンプト構築。"""
 
 import json
 
@@ -9,7 +9,7 @@ def build_generation_prompt(
     user_prompt: str,
     functions: list[FunctionDefinition],
 ) -> str:
-    """Build a function-selection and argument-extraction prompt."""
+    """関数選択と引数抽出のためのプロンプトを構築する。"""
     definitions = json.dumps(
         [function.model_dump(mode="json") for function in functions],
         ensure_ascii=False,

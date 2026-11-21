@@ -1,4 +1,4 @@
-"""Application pipeline for constrained function-call generation."""
+"""制約付き関数呼び出し生成のアプリケーションパイプライン。"""
 
 import json
 from collections.abc import Callable, Mapping
@@ -36,7 +36,7 @@ def generate_result(
     token_bytes_by_id: Mapping[int, bytes],
     token_ids_by_first_byte: Mapping[int, tuple[int, ...]],
 ) -> FunctionCallingResult:
-    """Generate and validate one result for one input prompt."""
+    """一つの入力プロンプトに対する結果を生成し、検証する。"""
     model_prompt = build_generation_prompt(prompt.prompt, functions)
     encoded = encode_prompt(model_prompt)
     if len(encoded) != 1:
@@ -74,7 +74,7 @@ def generate_all_results(
     prompts: list[PromptInput],
     functions: list[FunctionDefinition],
 ) -> list[FunctionCallingResult]:
-    """Initialize shared resources once and process all input prompts."""
+    """共有リソースを一度だけ初期化し、すべての入力プロンプトを処理する。"""
     model = Small_LLM_Model()
     token_bytes_by_id = load_token_bytes(model.get_path_to_vocab_file())
     token_ids_by_first_byte = index_tokens_by_first_byte(token_bytes_by_id)
@@ -82,11 +82,11 @@ def generate_all_results(
     transition = build_transition(context)
 
     def encode_prompt(text: str) -> list[list[int]]:
-        """Convert the SDK tensor result into typed batch token IDs."""
+        """SDKのテンソル結果を型付きのバッチトークンIDへ変換する。"""
         return cast(list[list[int]], model.encode(text).tolist())
 
     def get_logits(input_ids: list[int]) -> list[float]:
-        """Read next-token scores through the SDK public API."""
+        """SDKの公開APIを通じて次トークンのスコアを読み取る。"""
         return cast(
             list[float],
             model.get_logits_from_input_ids(input_ids),

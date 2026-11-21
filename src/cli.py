@@ -1,10 +1,10 @@
-"""Command-line arguments for the function-calling program."""
+"""関数呼び出しプログラムのコマンドライン引数。"""
 
 import argparse
 
 
 def parse_arguments() -> argparse.Namespace:
-    """Parse file paths accepted by the command-line interface."""
+    """コマンドラインインターフェースが受け取るファイルパスを解析する。"""
     parser = argparse.ArgumentParser(
         description="Generate schema-valid function calls with an LLM.",
     )
@@ -23,7 +23,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "--output",
-        default="data/output/function_calling_results.json",
+        default="data/output/function_calls.json",
         help="destination path for the generated result array",
     )
 

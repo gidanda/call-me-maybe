@@ -191,7 +191,7 @@ decode(token_ids: list[int]) -> str
 
 ## 10. 出力ファイル
 
-- 通常の出力先は `data/output/function_calling_results.json`。（PDF p.14）
+- 通常の出力先は `data/output/function_calls.json`。（PDF p.15）
 - すべてのプロンプトに対する結果を、単一のJSON配列として1ファイルに保存する。（PDF p.14）
 - 入力プロンプト1件につき、出力配列へJSON objectを1件追加する。（PDF p.14）
 - 各objectは、次の3キーを**正確に**含む。（PDF p.14）

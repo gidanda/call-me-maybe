@@ -1,4 +1,4 @@
-"""Command-line entry point for constrained function-call generation."""
+"""制約付き関数呼び出し生成のコマンドラインエントリーポイント。"""
 
 import sys
 
@@ -9,7 +9,7 @@ from .pipeline import generate_all_results
 
 
 def run() -> None:
-    """Load inputs, generate all calls, and save a single result array."""
+    """入力を読み込み、すべての呼び出しを生成して一つの結果配列に保存する。"""
     args = parse_arguments()
     prompts = validate_prompts(read_json(args.input))
     functions = validate_functions(read_json(args.functions_definition))
@@ -18,7 +18,7 @@ def run() -> None:
 
 
 def main() -> int:
-    """Run the CLI and report failures without an application traceback."""
+    """CLIを実行し、アプリケーションのトレースバックを出さずに失敗を報告する。"""
     try:
         run()
     except KeyboardInterrupt:

@@ -1,4 +1,4 @@
-"""Validated input and output models for function calling."""
+"""検証済みの関数呼び出し入出力モデル。"""
 
 import math
 from typing import Annotated, Any, Literal
@@ -20,7 +20,7 @@ JsonType = Literal["string", "number", "boolean"]
 
 
 class PromptInput(BaseModel):
-    """Represent one natural-language request."""
+    """一つの自然言語リクエストを表す。"""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -29,14 +29,14 @@ class PromptInput(BaseModel):
     @field_validator("prompt")
     @classmethod
     def reject_blank_prompt(cls, value: str) -> str:
-        """Reject whitespace-only prompts without changing valid input."""
+        """有効な入力を変更せず、空白だけのプロンプトを拒否する。"""
         if not value.strip():
             raise ValueError("prompt must not be blank")
         return value
 
 
 class TypeDefinition(BaseModel):
-    """Represent one supported primitive JSON type."""
+    """サポート対象の一つのJSONプリミティブ型を表す。"""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -44,7 +44,7 @@ class TypeDefinition(BaseModel):
 
 
 class FunctionDefinition(BaseModel):
-    """Represent one available function and its schema."""
+    """利用可能な一つの関数とそのスキーマを表す。"""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -56,21 +56,21 @@ class FunctionDefinition(BaseModel):
     @field_validator("name", "description")
     @classmethod
     def reject_blank_text(cls, value: str) -> str:
-        """Reject whitespace-only names and descriptions."""
+        """空白だけの名前と説明を拒否する。"""
         if not value.strip():
             raise ValueError("function text fields must not be blank")
         return value
 
     @model_validator(mode="after")
     def reject_blank_parameter_names(self) -> "FunctionDefinition":
-        """Reject whitespace-only parameter names."""
+        """空白だけの引数名を拒否する。"""
         if any(not name.strip() for name in self.parameters):
             raise ValueError("parameter names must not be blank")
         return self
 
 
 class FunctionCall(BaseModel):
-    """Represent a generated function call before adding its prompt."""
+    """プロンプトを付加する前の生成された関数呼び出しを表す。"""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -79,7 +79,7 @@ class FunctionCall(BaseModel):
 
 
 class FunctionCallingResult(BaseModel):
-    """Represent one final output entry."""
+    """最終出力の一つの要素を表す。"""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -93,12 +93,12 @@ FUNCTION_LIST_ADAPTER = TypeAdapter(list[FunctionDefinition])
 
 
 def validate_prompts(data: object) -> list[PromptInput]:
-    """Validate and return all prompt entries."""
+    """すべてのプロンプト要素を検証して返す。"""
     return PROMPT_LIST_ADAPTER.validate_python(data, strict=True)
 
 
 def validate_functions(data: object) -> list[FunctionDefinition]:
-    """Validate functions and reject an empty or ambiguous definition set."""
+    """関数を検証し、空または曖昧な定義セットを拒否する。"""
     functions = FUNCTION_LIST_ADAPTER.validate_python(data, strict=True)
     if not functions:
         raise ValueError("at least one function definition is required")
@@ -116,7 +116,7 @@ def validate_function_call(
     data: object,
     functions_by_name: dict[str, FunctionDefinition],
 ) -> FunctionCall:
-    """Validate a generated call against its selected function schema."""
+    """生成された呼び出しを、選択された関数のスキーマに照らして検証する。"""
     call = FunctionCall.model_validate(data, strict=True)
     function = functions_by_name.get(call.name)
     if function is None:

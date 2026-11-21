@@ -1,4 +1,4 @@
-"""Single-pass JSON function-call constraint with schema branching."""
+"""スキーマ分岐を備えた単一パスのJSON関数呼び出し制約。"""
 
 import json
 from collections.abc import Callable
@@ -40,7 +40,7 @@ OBJECT_SUFFIX = b"}}"
 
 
 class ConstraintContext(BaseModel):
-    """Store validated, reusable data needed by the call grammar."""
+    """呼び出し文法に必要な、検証済みで再利用可能なデータを保持する。"""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -57,7 +57,7 @@ def make_call_state(
     parameter_index: int = 0,
     value_state: ValueState | None = None,
 ) -> CallState:
-    """Return one immutable position in the function-call grammar."""
+    """関数呼び出し文法内の一つの不変な位置を返す。"""
     return (
         phase,
         offset,
@@ -71,7 +71,7 @@ def make_call_state(
 def build_constraint_context(
     functions: list[FunctionDefinition],
 ) -> ConstraintContext:
-    """Build reusable grammar data from validated function definitions."""
+    """検証済みの関数定義から再利用可能な文法データを構築する。"""
     if not functions:
         raise ValueError("at least one function definition is required")
     functions_by_name = {
@@ -89,7 +89,7 @@ def build_constraint_context(
 
 
 def is_call_complete(state: CallState) -> bool:
-    """Return whether the entire function-call object was consumed."""
+    """関数呼び出しオブジェクト全体を消費したかを返す。"""
     return state[0] == "complete"
 
 
@@ -97,7 +97,7 @@ def _selected_function(
     context: ConstraintContext,
     state: CallState,
 ) -> FunctionDefinition:
-    """Return the schema selected in the function-name phase."""
+    """関数名フェーズで選択されたスキーマを返す。"""
     selected_name = state[3]
     if selected_name is None:
         raise RuntimeError("function schema requested before selection")
@@ -108,7 +108,7 @@ def _parameter_key(
     context: ConstraintContext,
     state: CallState,
 ) -> bytes:
-    """Return the fixed bytes for the current parameter key."""
+    """現在の引数キーに対応する固定バイト列を返す。"""
     function = _selected_function(context, state)
     names = tuple(function.parameters)
     parameter_index = state[4]
@@ -126,7 +126,7 @@ def _parameter_type(
     context: ConstraintContext,
     state: CallState,
 ) -> str:
-    """Return the declared type of the current parameter."""
+    """現在の引数に宣言された型を返す。"""
     function = _selected_function(context, state)
     names = tuple(function.parameters)
     return function.parameters[names[state[4]]].type
@@ -136,7 +136,7 @@ def _phase_after_parameters_prefix(
     context: ConstraintContext,
     state: CallState,
 ) -> CallState:
-    """Enter the first parameter or skip to the object suffix."""
+    """最初の引数に進むか、オブジェクトの接尾部までスキップする。"""
     if _selected_function(context, state).parameters:
         return make_call_state(
             phase="parameter_key",
@@ -152,7 +152,7 @@ def _phase_after_value(
     context: ConstraintContext,
     state: CallState,
 ) -> CallState:
-    """Enter the next parameter key or the final object suffix."""
+    """次の引数キーまたは最後のオブジェクト接尾部に進む。"""
     function = _selected_function(context, state)
     next_index = state[4] + 1
     if next_index < len(function.parameters):
@@ -172,7 +172,7 @@ def allowed_first_bytes(
     context: ConstraintContext,
     state: CallState,
 ) -> frozenset[int] | None:
-    """Return possible token-leading bytes when they are known."""
+    """候補となるトークン先頭バイトが判明している場合に返す。"""
     phase, offset, name_prefix, _, _, _ = state
     if phase == "object_prefix":
         return frozenset((OBJECT_PREFIX[offset],))
@@ -200,7 +200,7 @@ def transition_call(
     state: CallState,
     token_bytes: bytes,
 ) -> CallState | None:
-    """Consume a complete candidate token or reject it."""
+    """候補トークン全体を消費するか、そのトークンを拒否する。"""
     current = state
 
     for byte in token_bytes:
@@ -328,7 +328,7 @@ def transition_call(
 
 
 def build_transition(context: ConstraintContext) -> TransitionFunction:
-    """Return a cached transition function bound to one function set."""
+    """一つの関数セットに紐付いたキャッシュ済み遷移関数を返す。"""
 
     @lru_cache(maxsize=250_000)
     def cached_transition(

@@ -1,1 +1,1 @@
-"""Constrained function-call generation package."""
+"""制約付き関数呼び出しを生成するパッケージ。"""
