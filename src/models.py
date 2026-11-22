@@ -9,9 +9,9 @@ from pydantic import (
     StringConstraints,
     TypeAdapter,
     field_validator,
-    model_validator,
 )
 
+# カスタムの文字列型を定義
 NonBlankString = Annotated[
     str,
     StringConstraints(min_length=1),
@@ -22,6 +22,7 @@ JsonType = Literal["string", "number", "boolean"]
 class PromptInput(BaseModel):
     """一つの自然言語リクエストを表す。"""
 
+    # Pydantic検証の設定（余分なキーと自動型変換を禁止）
     model_config = ConfigDict(extra="forbid", strict=True)
 
     prompt: NonBlankString
@@ -61,12 +62,16 @@ class FunctionDefinition(BaseModel):
             raise ValueError("function text fields must not be blank")
         return value
 
-    @model_validator(mode="after")
-    def reject_blank_parameter_names(self) -> "FunctionDefinition":
+    @field_validator("parameters")
+    @classmethod
+    def reject_blank_parameter_names(
+        cls,
+        parameters: dict[NonBlankString, TypeDefinition],
+    ) -> dict[NonBlankString, TypeDefinition]:
         """空白だけの引数名を拒否する。"""
-        if any(not name.strip() for name in self.parameters):
+        if any(not name.strip() for name in parameters):
             raise ValueError("parameter names must not be blank")
-        return self
+        return parameters
 
 
 class FunctionCall(BaseModel):
@@ -117,6 +122,7 @@ def validate_function_call(
     functions_by_name: dict[str, FunctionDefinition],
 ) -> FunctionCall:
     """生成された呼び出しを、選択された関数のスキーマに照らして検証する。"""
+    #python辞書をFunctionCallで検証し、クラスのオブジェクトが作成される
     call = FunctionCall.model_validate(data, strict=True)
     function = functions_by_name.get(call.name)
     if function is None:

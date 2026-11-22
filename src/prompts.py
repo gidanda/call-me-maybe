@@ -13,8 +13,14 @@ def build_generation_prompt(
     definitions = json.dumps(
         [function.model_dump(mode="json") for function in functions],
         ensure_ascii=False,
+        #不要な空白なしにjsonの区切り文字を入れる
         separators=(",", ":"),
     )
+    #Qwenが学習した特殊トークンを用いてテキストの役割を示唆
+    #system:モデル全体の役割　user:具体的な指示と入力　assistant:ここからモデルが回答
+    #モデルには意味判断のみを指示
+    #全て、などの指示を正規表現で広く解釈しすぎないように指示
+    #思考部分の|think|を先に閉じておくことで実際の回答から生成させる
     return (
         "<|im_start|>system\n"
         "You translate user requests into function calls using only the "
