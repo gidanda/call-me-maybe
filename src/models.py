@@ -122,7 +122,7 @@ def validate_function_call(
     functions_by_name: dict[str, FunctionDefinition],
 ) -> FunctionCall:
     """生成された呼び出しを、選択された関数のスキーマに照らして検証する。"""
-    #python辞書をFunctionCallで検証し、クラスのオブジェクトが作成される
+    # Python辞書をFunctionCallで検証し、クラスのオブジェクトを作る
     call = FunctionCall.model_validate(data, strict=True)
     function = functions_by_name.get(call.name)
     if function is None:
@@ -139,15 +139,12 @@ def validate_function_call(
             raise ValueError(f"parameter {name!r} must be a string")
         if definition.type == "boolean" and type(value) is not bool:
             raise ValueError(f"parameter {name!r} must be a boolean")
-        if definition.type == "number" and type(value) not in (int, float):
-            raise ValueError(f"parameter {name!r} must be a number")
-        if (
-            definition.type == "number"
-            and isinstance(value, float)
-            and not math.isfinite(value)
-        ):
-            raise ValueError(
-                f"parameter {name!r} must be a finite JSON number"
-            )
+        if definition.type == "number":
+            if type(value) is not float:
+                raise ValueError(f"parameter {name!r} must be a float")
+            if not math.isfinite(value):
+                raise ValueError(
+                    f"parameter {name!r} must be a finite JSON float"
+                )
 
     return call

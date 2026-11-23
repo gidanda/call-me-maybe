@@ -184,7 +184,7 @@ decode(token_ids: list[int]) -> str
 
 具体的には次の点を扱う。
 
-- `functions_definition.json` で `number` と指定された値は、JSONとして有効な整数または浮動小数点数に制限する。（PDF p.13）
+- `functions_definition.json` で `number` と指定された値は、JSONとして有効なfloatに制限する。（PDF p.13）
 - 各生成トークンを追加しても、JSON構造と期待スキーマの制約を維持できるようにする。（PDF p.13）
 - 語彙JSONにあるトークンIDと文字列表現の対応を利用して、各ステップで許可可能なトークンを判断する。（PDF p.13）
 - 関数定義をプロンプトで提示して正しいJSONが偶然生成されることを期待するだけの実装は禁止される。（PDF p.13）

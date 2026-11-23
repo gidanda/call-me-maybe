@@ -17,7 +17,7 @@ def _reject_nonstandard_constant(value: str) -> NoReturn:
 def read_json(input_path: str | Path) -> Any:
     """一つのUTF-8 JSONファイルを読み込んで解析する。"""
     with Path(input_path).open("r", encoding="utf-8") as file:
-        #json文字列からpython辞書へ
+        # JSON文字列からPython辞書へ変換する
         return json.load(file, parse_constant=_reject_nonstandard_constant)
 
 
@@ -27,14 +27,14 @@ def save_results(
 ) -> None:
     """結果を一時ファイルへ書き、完成後にUTF-8 JSONとして置き換える。"""
     path = Path(output_path)
-    #出力ファイルの保存先ディレクトリを作る
-    #（まだにないなら作る・あってもエラーにしない）
+    # 出力ファイルの保存先ディレクトリを作る
+    # （まだないなら作る・あってもエラーにしない）
     path.parent.mkdir(parents=True, exist_ok=True)
-    #一時ファイル保存用のパス
+    # 一時ファイル保存用のパス
     temporary_path: Path | None = None
 
     try:
-        #重複しない一時ファイル名を自動で作り、そのファイルを開いて返す
+        # 重複しない一時ファイル名を自動で作り、そのファイルを開いて返す
         with tempfile.NamedTemporaryFile(
             mode="w",
             encoding="utf-8",
@@ -44,7 +44,7 @@ def save_results(
             delete=False,
         ) as temporary_file:
             temporary_path = Path(temporary_file.name)
-            #resultをpydanticモデル→python辞書→json文字列に変換
+            # resultをPydanticモデル→Python辞書→JSON文字列に変換
             json.dump(
                 [result.model_dump(mode="json") for result in results],
                 temporary_file,
@@ -53,12 +53,12 @@ def save_results(
                 allow_nan=False,
             )
             temporary_file.write("\n")
-            #python書き込みバッファからOSにデータを渡し、仮ファイルを更新
+            # Pythonの書き込みバッファからOSにデータを渡す
             temporary_file.flush()
             os.fsync(temporary_file.fileno())
         os.replace(temporary_path, path)
     except Exception:
-        #失敗時に仮ファイルを既に作成していた場合、仮ファイルを削除
+        # 失敗時に仮ファイルが作成済みなら削除する
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
         raise

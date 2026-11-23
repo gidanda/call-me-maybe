@@ -125,8 +125,6 @@ def _transition_number(state: NumberState, byte: int) -> NumberState | None:
             return state
         if character == ".":
             return ("number", "dot")
-        if character in "eE":
-            return ("number", "exponent_mark")
         return None
     if phase == "dot":
         if "0" <= character <= "9":
@@ -184,5 +182,5 @@ def is_value_complete(state: ValueState) -> bool:
             and not pending_utf8
         )
     if state[0] == "number":
-        return state[1] in ("zero", "integer", "fraction", "exponent")
+        return state[1] in ("fraction", "exponent")
     return state[1] in (b"true", b"false")

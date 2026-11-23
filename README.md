@@ -105,8 +105,8 @@ Each output object contains exactly three keys:
   "prompt": "What is the sum of 2 and 3?",
   "name": "fn_add_numbers",
   "parameters": {
-    "a": 2,
-    "b": 3
+    "a": 2.0,
+    "b": 3.0
   }
 }
 ```

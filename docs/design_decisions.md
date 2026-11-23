@@ -18,8 +18,8 @@ is constrained to the following shape:
 {
   "name": "fn_add_numbers",
   "parameters": {
-    "a": 2,
-    "b": 3
+    "a": 2.0,
+    "b": 3.0
   }
 }
 ```
@@ -97,8 +97,8 @@ The mandatory implementation supports the primitive types stated by the
 project inputs:
 
 - `string`: a syntactically valid JSON string, including escapes and UTF-8.
-- `number`: the complete JSON number grammar, including sign, fraction, and
-  exponent.
+- `number`: a JSON float with an optional sign, a mandatory decimal point and
+  fractional digit, and an optional exponent.
 - `boolean`: exactly `true` or `false`.
 
 Unknown types are rejected during input validation, before model generation.
